@@ -5,7 +5,8 @@
  * offline; a newer one is fetched in the background for next time. Plain ES5 for 2017 TVs. */
 (function () {
   'use strict';
-  if (window.__ntLoader) return;
+  // TizenBrew injects into every frame; only YouTube's top page runs NewTube (not our own frame).
+  if (window.top !== window || window.__ntLoader) return;
   window.__ntLoader = true;
 
   var BASE = 'https://newtube-api.astanb.workers.dev/tv/';

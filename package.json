@@ -1,12 +1,11 @@
 {
   "name": "newtube-tv-loader",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "TizenBrew module: loads a signed NewTube release into YouTube's TV page.",
   "appName": "NewTube",
   "packageType": "mods",
   "websiteURL": "https://www.youtube.com/tv",
   "main": "loader.js",
-  "evaluateScriptOnDocumentStart": true,
   "license": "MIT",
   "keys": [
     "MediaPlayPause",
