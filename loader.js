@@ -16,6 +16,16 @@
     n: 'wQan4XSX0Wpo3gtfEZBWpW8Lhc582OGoHLRZ7Ae5cBEbdxR7JuQUV5L61rWA4voUByOhnXyQg4tkZfySho5Kc3jSBpgtrE2BheCBOAGWkfeNJkwGHy3RbGrzO3iJDEofpZ1HLBhWXj2FbIIztJqD3LHylSHugPSWIAAQfnI3XjlOE9INVC_aOAODHZxcQbhijdgtRcdy9xmrwIyASpp4aCEGqw3ytf1ImvF0pcvF1Se1jH9mIDSEcttz0KAORbx2ptVTp8t6UFN_IZ56SDZx9F-duAzFqU91th2Pfs7LiR14EBG_pqhPKIHJmbqHueK61orHlzlKd5051T-YMv-uCLYVNHeTqMOtxVhL0NkzFeJkYr2XJW2M6dy_bmf6Dkm4TYSKvfkjJ9phESwoP84EFYOVXtmAMtDvy1i1tFnRHw8EZAGTpfwHv0czxWpHikmjVa6uYNcQD3m9EoengEmD4ICG8GB5Xm-bYxorWA7GRMaf328C-F5ohYkepeql-VcP',
   };
   var STORE = 'newtube.release';
+  var LOADER = '1.0.3';
+  // Progress reports (no personal data), so a failure on the TV can be seen without a debugger.
+  var report = function (msg, data) {
+    try {
+      fetch('https://newtube-api.astanb.workers.dev/api/log', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit',
+        body: JSON.stringify({ session: 'loader', version: LOADER, lines: [{ t: Date.now(), msg: msg, data: data ? JSON.stringify(data) : undefined }] }),
+      })['catch'](function () {});
+    } catch (e) {}
+  };
 
   var stored = function () {
     try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { return null; }
@@ -55,8 +65,9 @@
 
   // 1. The release kept on the TV (checked when it was saved): start now, before YouTube's own code.
   var have = stored();
+  report('loader start', { kept: have ? have.version : null, url: location.href.slice(0, 60), subtle: !!(window.crypto && crypto.subtle), fetch: typeof fetch });
   if (have && have.code) {
-    try { run(have.code); } catch (e) { started = false; }
+    try { run(have.code); report('ran kept release', { version: have.version }); } catch (e) { started = false; report('kept release failed', { error: String(e) }); }
   }
 
   // 2. Check for a newer release; keep it only if its signature is good.
@@ -66,11 +77,13 @@
     return get(BASE + 'bundle.js').then(function (code) {
       return verify(code, m.sig).then(function (ok) {
         if (!ok) throw new Error('bad signature for release ' + m.version);
-        try { localStorage.setItem(STORE, JSON.stringify({ version: m.version, code: code })); } catch (e) {}
-        if (!started) run(code); // first run on this TV; later releases apply next time
+        try { localStorage.setItem(STORE, JSON.stringify({ version: m.version, code: code })); } catch (e) { report('could not keep release', { error: String(e) }); }
+        report('release verified', { version: m.version });
+        if (!started) { run(code); report('ran new release', { version: m.version }); } // first run on this TV; later releases apply next time
       });
     });
   })['catch'](function (e) {
+    report('loader error', { error: String((e && e.message) || e) });
     try { console.error('NewTube loader: ' + (e && e.message)); } catch (x) {}
   });
 })();
